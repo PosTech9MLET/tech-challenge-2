@@ -2,6 +2,7 @@ LICENSE
 README.md
 pyproject.toml
 src/features/__init__.py
+src/features/preprocess.py
 src/models/__init__.py
 src/pipelines/__init__.py
 src/tech_challenge_fase02.egg-info/PKG-INFO

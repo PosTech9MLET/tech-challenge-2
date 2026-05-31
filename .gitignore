@@ -1,5 +1,7 @@
 # Data
-data/
+data/raw/*.csv
+data/processed/
+data/features/
 
 # Environment
 .env
