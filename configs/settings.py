@@ -1,24 +1,37 @@
 """Configuração da aplicação carregadas do .env."""
 
-from azure.identity import AzureCliCredential
+from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 METRICS: list[str] = ["accuracy", "precision", "recall", "f1"]
 
 
-def get_secret_from_keyvault(vault_name: str, secret_name: str) -> str:
+def get_secret_from_keyvault(
+    vault_name: str,
+    secret_name: str,
+    tenant_id: str,
+    client_id: str,
+    client_secret: str,
+) -> str:
     """Busca um secret do Azure Key Vault.
 
     Args:
         vault_name: Nome do Key Vault.
         secret_name: Nome do secret.
+        tenant_id: Tenant ID do Service Principal.
+        client_id: Client ID do Service Principal.
+        client_secret: Client Secret do Service Principal.
 
     Returns:
         Valor do secret.
     """
     vault_url = f"https://{vault_name}.vault.azure.net"
-    credential = AzureCliCredential()
+    credential = ClientSecretCredential(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret,
+    )
     client = SecretClient(vault_url=vault_url, credential=credential)
     return client.get_secret(secret_name).value
 
@@ -46,17 +59,26 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = ""
     mlflow_artifact_location: str = ""
 
+    # service principal
+    azure_client_id: str = ""
+    azure_client_secret: str = ""
+    azure_tenant_id: str = ""
+
     def get_azure_storage_key(self) -> str:
         """Retorna a access key do storage, buscando do Key Vault se necessário.
 
         Returns:
             Access key do Azure Storage.
         """
-        if not self.azure_storage_key:
-            return get_secret_from_keyvault(
-                self.azure_keyvault_name, "AZURE-STORAGE-KEY"
-            )
-        return self.azure_storage_key
+        if self.azure_storage_key:
+            return self.azure_storage_key
+        return get_secret_from_keyvault(
+            vault_name=self.azure_keyvault_name,
+            secret_name="AZURE-STORAGE-KEY",
+            tenant_id=self.azure_tenant_id,
+            client_id=self.azure_client_id,
+            client_secret=self.azure_client_secret,
+        )
 
 
 settings = Settings()

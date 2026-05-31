@@ -52,8 +52,9 @@ tech-challenge-2/
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) — gerenciador de dependências
-- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) — autenticação com Azure
-- Acesso ao Azure Blob Storage e Key Vault (credenciais via `.env`)
+- Credenciais do Service Principal (fornecidas pelo grupo)
+
+> **Não é necessário ter conta Azure ou instalar o Azure CLI.** A autenticação é feita via Service Principal com credenciais compartilhadas.
 
 ---
 
@@ -78,7 +79,7 @@ uv sync
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais:
+Edite o `.env` com as credenciais fornecidas pelo grupo:
 
 ```dotenv
 # MODELO
@@ -89,31 +90,82 @@ EARLY_STOPPING_PATIENCE=5
 
 # DVC / AZURE
 AZURE_STORAGE_ACCOUNT=stgtechchallenge
-AZURE_STORAGE_KEY=             # deixe vazio para buscar do Key Vault
+AZURE_STORAGE_KEY=
 AZURE_CONTAINER_NAME=tech-challenge-f2
 
 # MLFLOW
 MLFLOW_TRACKING_URI=""
 MLFLOW_ARTIFACT_LOCATION=""
+
+# SERVICE PRINCIPAL (solicite ao grupo)
+AZURE_CLIENT_ID=
+AZURE_CLIENT_SECRET=
+AZURE_TENANT_ID=
 ```
 
-### 4. Autentique no Azure
+> `AZURE_STORAGE_KEY` deve ficar **vazio** — o sistema busca automaticamente do Key Vault usando o Service Principal.
 
-```bash
-az login
-```
-
-### 5. Baixe os dados via DVC
+### 4. Baixe os dados via DVC
 
 ```bash
 uv run dvc pull
 ```
 
-### 6. Valide o ambiente
+### 5. Valide o ambiente
 
 ```bash
 uv run python scripts/validate_env.py
 ```
+
+---
+
+## Onboarding de Novos Membros
+
+O projeto usa um **Service Principal** do Azure para autenticação — uma identidade de serviço com permissões fixas que permite qualquer membro rodar o projeto sem precisar de conta Azure própria ou configurações individuais de permissão.
+
+### Como funciona
+
+```
+.env com credenciais do Service Principal
+        ↓
+azure-identity autentica automaticamente
+        ↓
+acessa Key Vault → busca AZURE-STORAGE-KEY
+        ↓
+DVC pull baixa os dados do Blob Storage
+```
+
+### Passos para novos membros
+
+1. **Clonar o repositório** e instalar dependências com `uv sync`
+2. **Solicitar ao grupo** as três credenciais do Service Principal:
+   - `AZURE_CLIENT_ID`
+   - `AZURE_CLIENT_SECRET`
+   - `AZURE_TENANT_ID`
+3. **Preencher o `.env`** com as credenciais recebidas
+4. **Rodar `uv run dvc pull`** para baixar os dados
+5. **Validar com `uv run python scripts/validate_env.py`**
+
+> As credenciais do Service Principal **nunca são commitadas** no repositório. Compartilhe apenas por canal seguro (ex.: mensagem direta, gerenciador de senhas).
+
+---
+
+## Infraestrutura Azure
+
+| Recurso | Nome | Finalidade |
+|---|---|---|
+| Storage Account | `stgtechchallenge` | Armazenamento dos CSVs via DVC |
+| Blob Container | `tech-challenge-f2` | Container dos dados e artefatos |
+| Key Vault | `techchallengevaults` | Gerenciamento de secrets |
+| Service Principal | `tech-challenge-sp` | Autenticação sem conta pessoal |
+
+### Secrets armazenados no Key Vault
+
+| Secret | Descrição |
+|---|---|
+| `AZURE-STORAGE-KEY` | Access key do Storage Account |
+| `AZURE-STORAGE-ACCOUNT` | Nome do Storage Account |
+| `AZURE-CONTAINER-NAME` | Nome do container Blob |
 
 ---
 
@@ -130,23 +182,11 @@ O dataset do Instacart contém o histórico de compras de mais de 200.000 usuár
 | `aisles.csv` | Corredores do supermercado | 134 corredores |
 | `departments.csv` | Departamentos | 21 departamentos |
 
-> Os dados são gerenciados pelo **DVC** e armazenados no **Azure Blob Storage** (`stgtechchallenge/tech-challenge-f2`). Nunca são commitados diretamente no Git.
+> Os dados são gerenciados pelo **DVC** e armazenados no **Azure Blob Storage**. Nunca são commitados diretamente no Git.
 
 ---
 
-## Configuração de Ambiente
-
-### Azure Key Vault
-
-O projeto utiliza o **Azure Key Vault** (`techchallengevaults`) para gerenciar secrets em produção. Localmente, a autenticação é feita via Azure CLI.
-
-Se `AZURE_STORAGE_KEY` estiver vazio no `.env`, o sistema busca automaticamente do Key Vault:
-
-```python
-settings.get_azure_storage_key()  # busca do Key Vault se necessário
-```
-
-### DVC Remote
+## DVC Remote
 
 O remote DVC está configurado para o Azure Blob Storage:
 
@@ -154,10 +194,17 @@ O remote DVC está configurado para o Azure Blob Storage:
 azure://tech-challenge-f2/dvc
 ```
 
-Para configurar localmente:
+Comandos úteis:
 
 ```bash
-uv run dvc remote modify --local azure_remote account_key SUA_KEY
+# Baixar dados
+uv run dvc pull
+
+# Enviar dados atualizados
+uv run dvc push
+
+# Verificar status
+uv run dvc status
 ```
 
 ---
@@ -167,10 +214,10 @@ uv run dvc remote modify --local azure_remote account_key SUA_KEY
 O projeto utiliza **ruff** para linting e formatação, com **pre-commit** hooks que rodam automaticamente em todo commit.
 
 ```bash
-# Instalar hooks
+# Instalar hooks (apenas uma vez após clonar)
 uv run pre-commit install
 
-# Rodar manualmente
+# Rodar manualmente em todos os arquivos
 uv run pre-commit run --all-files
 
 # Verificar linting
@@ -192,6 +239,7 @@ Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (m
 | `pandas` | ≥2.3.3 | Manipulação de dados |
 | `pydantic-settings` | ≥2.14.1 | Configuração via .env |
 | `azure-keyvault-secrets` | — | Gerenciamento de secrets |
+| `azure-identity` | — | Autenticação via Service Principal |
 
 ---
 
