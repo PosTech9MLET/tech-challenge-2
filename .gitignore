@@ -1,0 +1,24 @@
+# Data
+data/
+
+# Environment
+.env
+.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# MLflow
+mlruns/
+
+# DVC
+/tmp/
+
+# Ruff
+.ruff_cache/
+
+# Models
+models/
