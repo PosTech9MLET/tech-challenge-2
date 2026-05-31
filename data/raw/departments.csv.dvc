@@ -1,0 +1,5 @@
+outs:
+- md5: 18d5219db49bd50b403d39016c3ecdc5
+  size: 270
+  hash: md5
+  path: departments.csv

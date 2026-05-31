@@ -1,0 +1,5 @@
+outs:
+- md5: bc49e521faa60e1542d4a94cac3e3bb0
+  size: 2603
+  hash: md5
+  path: aisles.csv
