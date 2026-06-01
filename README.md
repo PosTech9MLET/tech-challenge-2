@@ -12,6 +12,17 @@ Sistema de recomendação de produtos baseado no comportamento de compra de usu�
 
 ---
 
+## Integrantes
+
+| Nome | RM |
+|---|---|
+| Gabriel Freitas | RM370409 |
+| Diego | — |
+| Deyvid | — |
+| Lucas Molitor | — |
+
+---
+
 ## Estrutura do Projeto
 
 ```
@@ -48,38 +59,60 @@ tech-challenge-2/
 
 ---
 
-## Pré-requisitos
+## Como Funciona a Autenticação
 
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/) — gerenciador de dependências
-- Credenciais do Service Principal (fornecidas pelo grupo)
+O projeto usa um **Service Principal** do Azure — uma identidade de serviço com permissões controladas que permite qualquer pessoa rodar o projeto **sem precisar de conta Azure própria**.
 
-> **Não é necessário ter conta Azure ou instalar o Azure CLI.** A autenticação é feita via Service Principal com credenciais compartilhadas.
+```
+Credenciais do Service Principal no .env
+             ↓
+   azure-identity autentica
+             ↓
+   Key Vault → busca AZURE-STORAGE-KEY
+             ↓
+   DVC pull → baixa os CSVs do Blob Storage
+             ↓
+        Projeto pronto
+```
+
+> Não é necessário instalar o Azure CLI nem ter uma conta Azure pessoal.
 
 ---
 
-## Instalação
+## Guia de Início Rápido
 
-### 1. Clone o repositório
+### Passo 1 — Instale o `uv`
+
+O projeto usa `uv` como gerenciador de dependências. Instale uma única vez:
+
+```bash
+pip install uv
+```
+
+> Documentação completa: https://docs.astral.sh/uv/
+
+### Passo 2 — Clone o repositório
 
 ```bash
 git clone https://github.com/PosTech9MLET/tech-challenge-2.git
 cd tech-challenge-2
 ```
 
-### 2. Instale as dependências
+### Passo 3 — Instale as dependências
 
 ```bash
 uv sync
 ```
 
-### 3. Configure as variáveis de ambiente
+Esse comando lê o `uv.lock` e instala exatamente as mesmas versões usadas pelo grupo, garantindo reprodutibilidade.
+
+### Passo 4 — Configure o ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` com as credenciais fornecidas pelo grupo:
+Abra o `.env` e preencha com as credenciais abaixo:
 
 ```dotenv
 # MODELO
@@ -97,56 +130,114 @@ AZURE_CONTAINER_NAME=tech-challenge-f2
 MLFLOW_TRACKING_URI=""
 MLFLOW_ARTIFACT_LOCATION=""
 
-# SERVICE PRINCIPAL (solicite ao grupo)
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=
-AZURE_TENANT_ID=
+# SERVICE PRINCIPAL
+AZURE_CLIENT_ID=<ver seção Avaliação>
+AZURE_CLIENT_SECRET=<ver seção Avaliação>
+AZURE_TENANT_ID=<ver seção Avaliação>
 ```
 
 > `AZURE_STORAGE_KEY` deve ficar **vazio** — o sistema busca automaticamente do Key Vault usando o Service Principal.
 
-### 4. Baixe os dados via DVC
+### Passo 5 — Instale os hooks de qualidade de código
+
+```bash
+uv run pre-commit install
+```
+
+Este comando instala os hooks do `ruff` no Git local. A partir daí, o linting roda automaticamente em todo `git commit`.
+
+### Passo 6 — Baixe os dados via DVC
 
 ```bash
 uv run dvc pull
 ```
 
-### 5. Valide o ambiente
+Os 6 CSVs do Instacart serão baixados do Azure Blob Storage para `data/raw/`.
+
+### Passo 7 — Valide o ambiente
 
 ```bash
 uv run python scripts/validate_env.py
 ```
 
+Se tudo estiver correto, a saída será:
+
+```
+✓ torch
+✓ sklearn
+✓ mlflow
+...
+✓ Ambiente de desenvolvimento validado com sucesso!
+```
+
 ---
 
-## Onboarding de Novos Membros
+## Avaliação
 
-O projeto usa um **Service Principal** do Azure para autenticação — uma identidade de serviço com permissões fixas que permite qualquer membro rodar o projeto sem precisar de conta Azure própria ou configurações individuais de permissão.
+> Esta seção é destinada ao professor avaliador e membros externos que precisam rodar o projeto sem configuração adicional.
 
-### Como funciona
+O projeto utiliza um Service Principal criado especificamente para avaliação, com permissões de **somente leitura** no Blob Storage e Key Vault. Preencha o `.env` com as credenciais abaixo:
 
-```
-.env com credenciais do Service Principal
-        ↓
-azure-identity autentica automaticamente
-        ↓
-acessa Key Vault → busca AZURE-STORAGE-KEY
-        ↓
-DVC pull baixa os dados do Blob Storage
+```dotenv
+AZURE_CLIENT_ID=1baf74a9-4ad6-4d3d-88db-c3070e970684
+AZURE_CLIENT_SECRET=<SUBSTITUIR — fornecido junto com o vídeo>
+AZURE_TENANT_ID=11dbbfe2-89b8-4549-be10-cec364e59551
 ```
 
-### Passos para novos membros
+> O `AZURE_CLIENT_SECRET` será entregue junto com o vídeo STAR por canal seguro, para evitar exposição pública no repositório.
 
-1. **Clonar o repositório** e instalar dependências com `uv sync`
-2. **Solicitar ao grupo** as três credenciais do Service Principal:
-   - `AZURE_CLIENT_ID`
-   - `AZURE_CLIENT_SECRET`
-   - `AZURE_TENANT_ID`
-3. **Preencher o `.env`** com as credenciais recebidas
-4. **Rodar `uv run dvc pull`** para baixar os dados
-5. **Validar com `uv run python scripts/validate_env.py`**
+---
 
-> As credenciais do Service Principal **nunca são commitadas** no repositório. Compartilhe apenas por canal seguro (ex.: mensagem direta, gerenciador de senhas).
+## Fluxo de Desenvolvimento
+
+Para contribuir com o projeto, siga este fluxo:
+
+```bash
+# 1. Crie uma branch para sua feature
+git checkout -b feat/nome-da-feature
+
+# 2. Desenvolva e teste localmente
+uv run python scripts/validate_env.py
+
+# 3. O pre-commit roda automaticamente ao commitar
+git add .
+git commit -m "feat: descrição da mudança"
+
+# 4. Abra um Pull Request para main
+git push origin feat/nome-da-feature
+```
+
+### Convenção de commits
+
+O projeto usa **commits semânticos**:
+
+| Prefixo | Uso |
+|---|---|
+| `feat:` | Nova funcionalidade |
+| `fix:` | Correção de bug |
+| `docs:` | Documentação |
+| `refactor:` | Refatoração sem mudança de comportamento |
+| `test:` | Adição ou correção de testes |
+| `chore:` | Tarefas de manutenção (deps, config) |
+
+---
+
+## Qualidade de Código
+
+O projeto usa **ruff** para linting e formatação automática.
+
+```bash
+# Verificar erros
+uv run ruff check .
+
+# Corrigir automaticamente
+uv run ruff check . --fix
+
+# Rodar pre-commit manualmente em todos os arquivos
+uv run pre-commit run --all-files
+```
+
+Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (modernização), `D` (docstrings Google style).
 
 ---
 
@@ -159,7 +250,7 @@ DVC pull baixa os dados do Blob Storage
 | Key Vault | `techchallengevaults` | Gerenciamento de secrets |
 | Service Principal | `tech-challenge-sp` | Autenticação sem conta pessoal |
 
-### Secrets armazenados no Key Vault
+### Secrets no Key Vault
 
 | Secret | Descrição |
 |---|---|
@@ -171,8 +262,6 @@ DVC pull baixa os dados do Blob Storage
 
 ## Dataset
 
-O dataset do Instacart contém o histórico de compras de mais de 200.000 usuários. São 6 arquivos relacionais:
-
 | Arquivo | Descrição | Tamanho |
 |---|---|---|
 | `orders.csv` | Pedidos de cada usuário | ~3.4M linhas |
@@ -182,49 +271,7 @@ O dataset do Instacart contém o histórico de compras de mais de 200.000 usuár
 | `aisles.csv` | Corredores do supermercado | 134 corredores |
 | `departments.csv` | Departamentos | 21 departamentos |
 
-> Os dados são gerenciados pelo **DVC** e armazenados no **Azure Blob Storage**. Nunca são commitados diretamente no Git.
-
----
-
-## DVC Remote
-
-O remote DVC está configurado para o Azure Blob Storage:
-
-```
-azure://tech-challenge-f2/dvc
-```
-
-Comandos úteis:
-
-```bash
-# Baixar dados
-uv run dvc pull
-
-# Enviar dados atualizados
-uv run dvc push
-
-# Verificar status
-uv run dvc status
-```
-
----
-
-## Qualidade de Código
-
-O projeto utiliza **ruff** para linting e formatação, com **pre-commit** hooks que rodam automaticamente em todo commit.
-
-```bash
-# Instalar hooks (apenas uma vez após clonar)
-uv run pre-commit install
-
-# Rodar manualmente em todos os arquivos
-uv run pre-commit run --all-files
-
-# Verificar linting
-uv run ruff check .
-```
-
-Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (modernização), `D` (docstrings Google style).
+> Os dados são gerenciados pelo **DVC** e armazenados no Azure Blob Storage. Nunca são commitados diretamente no Git.
 
 ---
 
@@ -255,17 +302,6 @@ Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (m
 | Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ⏳ Pendente |
 | Etapa 4 | MLflow Model Registry | ⏳ Pendente |
 | Entrega | README + Vídeo STAR | ⏳ Pendente |
-
----
-
-## Integrantes
-
-| Nome | RM |
-|---|---|
-| Gabriel Freitas | RM370409 |
-| Diego | — |
-| Deyvid | — |
-| Lucas Molitor | — |
 
 ---
 
