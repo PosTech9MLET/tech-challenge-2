@@ -146,7 +146,15 @@ uv run pre-commit install
 
 Este comando instala os hooks do `ruff` no Git local. A partir daí, o linting roda automaticamente em todo `git commit`.
 
-### Passo 6 — Baixe os dados via DVC
+### Passo 6 — Configure o DVC e baixe os dados
+
+Execute o script de configuração do DVC — ele busca automaticamente a access key do Azure Key Vault usando o Service Principal e configura o remote local:
+
+```bash
+uv run python scripts/setup_dvc.py
+```
+
+Em seguida, baixe os dados:
 
 ```bash
 uv run dvc pull
