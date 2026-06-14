@@ -1,0 +1,112 @@
+stages:
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 1 — Pré-processamento
+  #   Lê os 6 CSVs brutos, aplica as funções do preprocess.py,
+  #   faz merge e persiste Parquets limpos em data/processed/.
+  # ──────────────────────────────────────────────────────────────
+  preprocess:
+    cmd: uv run python src/pipelines/preprocess_stage.py
+    deps:
+      - src/pipelines/preprocess_stage.py
+      - src/features/preprocess.py
+      - data/raw/orders.csv
+      - data/raw/order_products__prior.csv
+      - data/raw/order_products__train.csv
+      - data/raw/products.csv
+      - data/raw/aisles.csv
+      - data/raw/departments.csv
+    outs:
+      - data/processed/orders_clean.parquet
+      - data/processed/products_full.parquet
+      - data/processed/interactions.parquet
+    metrics:
+      - data/processed/preprocess_metrics.json:
+          cache: false
+    params:
+      - params.yaml:
+          - data.raw_dir
+          - data.processed_dir
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 2 — Feature Engineering
+  #   Constrói features de usuário, produto e par user-produto.
+  #   Gera os splits train / val / test sem data leakage.
+  # ──────────────────────────────────────────────────────────────
+  feature_eng:
+    cmd: uv run python src/pipelines/feature_eng_stage.py
+    deps:
+      - src/pipelines/feature_eng_stage.py
+      - src/features/feature_builder.py
+      - data/processed/orders_clean.parquet
+      - data/processed/products_full.parquet
+      - data/processed/interactions.parquet
+    outs:
+      - data/features/user_features.parquet
+      - data/features/product_features.parquet
+      - data/features/user_product_features.parquet
+      - data/features/train.parquet
+      - data/features/val.parquet
+      - data/features/test.parquet
+    metrics:
+      - data/features/feature_metrics.json:
+          cache: false
+    params:
+      - params.yaml:
+          - train.seed
+          - data.features_dir
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 3 — Treinamento
+  #   Treina PopularityBaseline (sklearn) e RecommenderMLP
+  #   (PyTorch). Loga params, métricas e artefatos no MLflow.
+  # ──────────────────────────────────────────────────────────────
+  train:
+    cmd: uv run python src/pipelines/train_stage.py
+    deps:
+      - src/pipelines/train_stage.py
+      - src/models/baseline.py
+      - src/models/mlp.py
+      - src/training/trainer.py
+      - data/features/train.parquet
+      - data/features/val.parquet
+    outs:
+      - models/baseline.pkl
+      - models/mlp_best.pt
+      - models/encoders.pkl
+    metrics:
+      - models/train_metrics.json:
+          cache: false
+    params:
+      - params.yaml:
+          - train.seed
+          - train.epochs
+          - train.batch_size
+          - train.lr
+          - train.early_stopping_patience
+          - model.embedding_dim
+          - model.hidden_layers
+          - model.dropout
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 4 — Avaliação
+  #   Avalia baseline e MLP no conjunto de teste com
+  #   Precision@K, Recall@K, NDCG@K e HR@K para K in [5,10,20].
+  # ──────────────────────────────────────────────────────────────
+  evaluate:
+    cmd: uv run python src/pipelines/evaluate_stage.py
+    deps:
+      - src/pipelines/evaluate_stage.py
+      - src/models/baseline.py
+      - src/models/mlp.py
+      - src/training/trainer.py
+      - models/baseline.pkl
+      - models/mlp_best.pt
+      - models/encoders.pkl
+      - data/features/test.parquet
+    metrics:
+      - models/eval_metrics.json:
+          cache: false
+    params:
+      - params.yaml:
+          - evaluate.k_values
