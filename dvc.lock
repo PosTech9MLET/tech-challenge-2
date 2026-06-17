@@ -33,8 +33,8 @@ stages:
       size: 2853
     - path: src/pipelines/preprocess_stage.py
       hash: md5
-      md5: a6c7a76ebe0e59de9988be8fd3d9576e
-      size: 4179
+      md5: a5b0bce463654c88f1141df572908b0a
+      size: 4281
     params:
       params.yaml:
         data.processed_dir: data/processed
@@ -56,3 +56,59 @@ stages:
       hash: md5
       md5: 7be4f7af9d7212a762b61323920338de
       size: 1557546
+  feature_eng:
+    cmd: uv run python -m src.pipelines.feature_eng_stage
+    deps:
+    - path: data/processed/interactions.parquet
+      hash: md5
+      md5: ec58d728aa3f3cb67b11e271682a2069
+      size: 192499382
+    - path: data/processed/orders_clean.parquet
+      hash: md5
+      md5: 532f82f457957982388488d7dd207449
+      size: 27729116
+    - path: data/processed/products_full.parquet
+      hash: md5
+      md5: 7be4f7af9d7212a762b61323920338de
+      size: 1557546
+    - path: src/features/feature_builder.py
+      hash: md5
+      md5: 46769efe768f783735a251e2cc61c5bb
+      size: 9304
+    - path: src/pipelines/feature_eng_stage.py
+      hash: md5
+      md5: 086a2a425413b41ff219d411ed782492
+      size: 2770
+    params:
+      params.yaml:
+        data.features_dir: data/features
+        train.seed: 42
+    outs:
+    - path: data/features/feature_metrics.json
+      hash: md5
+      md5: c3e835e5337a8ddbdc662fd46654ccdf
+      size: 181
+    - path: data/features/product_features.parquet
+      hash: md5
+      md5: 0f056c6f8b7ae2fbdf901140f02adff7
+      size: 973164
+    - path: data/features/test.parquet
+      hash: md5
+      md5: 13b863857b35f6350c486ce3f8a42bcd
+      size: 4730098
+    - path: data/features/train.parquet
+      hash: md5
+      md5: 55d6c6e8912f3db74506f6be7d2ec552
+      size: 20572584
+    - path: data/features/user_features.parquet
+      hash: md5
+      md5: 9731fc2e447cca719036c64844e39889
+      size: 3895790
+    - path: data/features/user_product_features.parquet
+      hash: md5
+      md5: 3c5f2e6d3a5054ad753ee7e71a369d03
+      size: 81279015
+    - path: data/features/val.parquet
+      hash: md5
+      md5: 6c53ae6a6d7a2e7f7b6d237fe0ef272a
+      size: 4732634
