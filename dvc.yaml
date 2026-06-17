@@ -6,7 +6,7 @@ stages:
   #   faz merge e persiste Parquets limpos em data/processed/.
   # ──────────────────────────────────────────────────────────────
   preprocess:
-    cmd: uv run python src/pipelines/preprocess_stage.py
+    cmd: uv run python -m src.pipelines.preprocess_stage
     deps:
       - src/pipelines/preprocess_stage.py
       - src/features/preprocess.py
@@ -34,7 +34,7 @@ stages:
   #   Gera os splits train / val / test sem data leakage.
   # ──────────────────────────────────────────────────────────────
   feature_eng:
-    cmd: uv run python src/pipelines/feature_eng_stage.py
+    cmd: uv run python -m src.pipelines.feature_eng_stage
     deps:
       - src/pipelines/feature_eng_stage.py
       - src/features/feature_builder.py
@@ -62,7 +62,7 @@ stages:
   #   (PyTorch). Loga params, métricas e artefatos no MLflow.
   # ──────────────────────────────────────────────────────────────
   train:
-    cmd: uv run python src/pipelines/train_stage.py
+    cmd: uv run python -m src.pipelines.train_stage
     deps:
       - src/pipelines/train_stage.py
       - src/models/baseline.py
@@ -94,7 +94,7 @@ stages:
   #   Precision@K, Recall@K, NDCG@K e HR@K para K in [5,10,20].
   # ──────────────────────────────────────────────────────────────
   evaluate:
-    cmd: uv run python src/pipelines/evaluate_stage.py
+    cmd: uv run python -m src.pipelines.evaluate_stage
     deps:
       - src/pipelines/evaluate_stage.py
       - src/models/baseline.py

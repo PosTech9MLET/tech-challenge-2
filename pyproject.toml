@@ -35,7 +35,7 @@ explicit = true
 package = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src", "configs"]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
