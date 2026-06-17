@@ -23,4 +23,4 @@ mlruns/
 .ruff_cache/
 
 # Models
-models/*.egg-info/
+*.egg-info/
