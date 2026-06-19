@@ -48,6 +48,7 @@ stages:
       - data/features/train.parquet
       - data/features/val.parquet
       - data/features/test.parquet
+      - models/encoders.pkl
     metrics:
       - data/features/feature_metrics.json:
           cache: false
@@ -70,10 +71,10 @@ stages:
       - src/training/trainer.py
       - data/features/train.parquet
       - data/features/val.parquet
+      - models/encoders.pkl
     outs:
       - models/baseline.pkl
       - models/mlp_best.pt
-      - models/encoders.pkl
     metrics:
       - models/train_metrics.json:
           cache: false

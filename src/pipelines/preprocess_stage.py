@@ -89,31 +89,40 @@ def build_interactions(
     return interactions
 
 
-def run() -> None:
-    """Executa o stage de pré-processamento e salva os artefatos."""
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+def load_raw_data() -> tuple[
+    pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame
+]:
+    """Carrega os 6 CSVs brutos usando as funções do preprocess.py.
 
+    Returns:
+        Tupla (orders, products, aisles, departments,
+        order_products_prior, order_products_train).
+    """
     log.info("Carregando CSVs brutos de %s...", RAW_DIR)
     orders = load_orders(str(RAW_DIR / "orders.csv"))
     products = load_products(str(RAW_DIR / "products.csv"))
     aisles = load_aisles(str(RAW_DIR / "aisles.csv"))
     departments = load_departments(str(RAW_DIR / "departments.csv"))
-    order_products_prior = load_order_products(str(RAW_DIR), subset="prior")
-    order_products_train = load_order_products(str(RAW_DIR), subset="train")
+    prior = load_order_products(str(RAW_DIR), subset="prior")
+    train = load_order_products(str(RAW_DIR), subset="train")
+    return orders, products, aisles, departments, prior, train
 
-    log.info("Enriquecendo tabela de produtos...")
-    products_full = build_products_full(products, aisles, departments)
 
-    log.info("Construindo tabela de interações unificada...")
-    interactions = build_interactions(
-        order_products_prior, order_products_train, orders
-    )
+def save_preprocess_metrics(
+    orders: pd.DataFrame,
+    products_full: pd.DataFrame,
+    interactions: pd.DataFrame,
+) -> dict:
+    """Calcula e salva as métricas do stage de pré-processamento.
 
-    log.info("Salvando Parquets em %s...", PROCESSED_DIR)
-    orders.to_parquet(PROCESSED_DIR / "orders_clean.parquet", index=False)
-    products_full.to_parquet(PROCESSED_DIR / "products_full.parquet", index=False)
-    interactions.to_parquet(PROCESSED_DIR / "interactions.parquet", index=False)
+    Args:
+        orders: Pedidos limpos.
+        products_full: Produtos enriquecidos.
+        interactions: Tabela unificada de interações.
 
+    Returns:
+        Dicionário com as métricas calculadas.
+    """
     metrics = {
         "n_users": int(orders["user_id"].nunique()),
         "n_orders": int(orders["order_id"].nunique()),
@@ -124,7 +133,27 @@ def run() -> None:
     }
     with open(PROCESSED_DIR / "preprocess_metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
+    return metrics
 
+
+def run() -> None:
+    """Executa o stage de pré-processamento e salva os artefatos."""
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+    orders, products, aisles, departments, prior, train = load_raw_data()
+
+    log.info("Enriquecendo tabela de produtos...")
+    products_full = build_products_full(products, aisles, departments)
+
+    log.info("Construindo tabela de interações unificada...")
+    interactions = build_interactions(prior, train, orders)
+
+    log.info("Salvando Parquets em %s...", PROCESSED_DIR)
+    orders.to_parquet(PROCESSED_DIR / "orders_clean.parquet", index=False)
+    products_full.to_parquet(PROCESSED_DIR / "products_full.parquet", index=False)
+    interactions.to_parquet(PROCESSED_DIR / "interactions.parquet", index=False)
+
+    metrics = save_preprocess_metrics(orders, products_full, interactions)
     log.info("Stage 1 concluído. %s", metrics)
 
 

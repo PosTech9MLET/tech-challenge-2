@@ -127,7 +127,6 @@ def _aggregate_user_product_stats(prior: pd.DataFrame) -> pd.DataFrame:
         prior.groupby(["user_id", "product_id"])
         .agg(
             up_order_count=("order_id", "nunique"),
-            up_reorder_rate=("reordered", "mean"),
             up_avg_cart_position=("add_to_cart_order", "mean"),
         )
         .reset_index()
@@ -149,9 +148,10 @@ def build_user_product_features(
     """
     prior = interactions[interactions["split"] == "prior"]
     up_stats = _aggregate_user_product_stats(prior)
+    prior_orders = orders[orders["eval_set"] == "prior"]
 
     total_orders = (
-        orders.groupby("user_id")["order_id"]
+        prior_orders.groupby("user_id")["order_id"]
         .nunique()
         .rename("user_total_orders")
         .reset_index()
@@ -211,7 +211,9 @@ def _merge_features(
     return dataset
 
 
-def _encode_ids(dataset: pd.DataFrame) -> pd.DataFrame:
+def _encode_ids(
+    dataset: pd.DataFrame,
+) -> tuple[pd.DataFrame, LabelEncoder, LabelEncoder]:
     """Cria índices inteiros sequenciais para usuários e produtos.
 
     Necessário porque as camadas de Embedding do PyTorch esperam
@@ -221,13 +223,15 @@ def _encode_ids(dataset: pd.DataFrame) -> pd.DataFrame:
         dataset: DataFrame com colunas user_id e product_id.
 
     Returns:
-        DataFrame com as colunas adicionais user_id_enc e product_id_enc.
+        Tupla (dataset, user_encoder, product_encoder). O dataset
+        ganha as colunas user_id_enc e product_id_enc, e os encoders
+        são retornados para serem salvos e reutilizados na inferência.
     """
     user_enc = LabelEncoder()
     prod_enc = LabelEncoder()
     dataset["user_id_enc"] = user_enc.fit_transform(dataset["user_id"])
     dataset["product_id_enc"] = prod_enc.fit_transform(dataset["product_id"])
-    return dataset
+    return dataset, user_enc, prod_enc
 
 
 def _split_users(users: np.ndarray, seed: int) -> tuple[set, set]:
@@ -250,37 +254,137 @@ def _split_users(users: np.ndarray, seed: int) -> tuple[set, set]:
     return train_users, val_users
 
 
+def _sample_negatives_for_user(
+    user_id: int,
+    positive_products: set,
+    popular_products: np.ndarray,
+    n_negatives: int,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Sorteia produtos negativos populares para um usuário."""
+    negatives = []
+    attempts = 0
+    max_attempts = n_negatives * 10
+
+    while len(negatives) < n_negatives and attempts < max_attempts:
+        product = rng.choice(popular_products)
+
+        if product not in positive_products and product not in negatives:
+            negatives.append(product)
+
+        attempts += 1
+
+    return pd.DataFrame(
+        {
+            "user_id": user_id,
+            "product_id": negatives,
+            "reordered": 0,
+        }
+    )
+
+
+def add_negative_samples(
+    labels: pd.DataFrame,
+    popular_products: np.ndarray,
+    seed: int,
+    ratio: int = 20,
+) -> pd.DataFrame:
+    """Adiciona amostras negativas ao conjunto de rótulos.
+
+    Sem isso, o modelo só é avaliado contra os itens que o usuário já
+    decidiu comprar, o que infla artificialmente as métricas de
+    ranking. Para cada usuário, sorteia produtos que ele não comprou
+    no pedido de rótulo, na proporção indicada.
+
+    Args:
+        labels: DataFrame com user_id, product_id e reordered (só
+            positivos, vindos do split 'train' nativo do Instacart).
+        popular_products: Array com todos os product_ids do catálogo.
+        seed: Semente para reprodutibilidade do sorteio.
+        ratio: Número de negativos sorteados por positivo.
+
+    Returns:
+        DataFrame combinando positivos e negativos, com a coluna
+        reordered indicando 1 (comprou) ou 0 (não comprou).
+    """
+    rng = np.random.default_rng(seed)
+    positives_by_user = labels.groupby("user_id")["product_id"].apply(set)
+
+    negative_frames = []
+    for user_id, positive_products in positives_by_user.items():
+        n_negatives = len(positive_products) * ratio
+        negatives = _sample_negatives_for_user(
+            user_id,
+            positive_products,
+            popular_products,
+            n_negatives,
+            rng,
+        )
+        negative_frames.append(negatives)
+
+    negatives_df = pd.concat(negative_frames, ignore_index=True)
+    return pd.concat([labels, negatives_df], ignore_index=True)
+
+
+def _build_positive_labels(interactions: pd.DataFrame) -> pd.DataFrame:
+    """Extrai os pares (usuário, produto) positivos do split 'train'.
+
+    Args:
+        interactions: Tabela de interações completa.
+
+    Returns:
+        DataFrame com user_id, product_id e reordered=1, um por item
+        do próximo pedido real de cada usuário.
+    """
+    positives = interactions[interactions["split"] == "train"][
+        ["user_id", "product_id", "reordered"]
+    ].copy()
+    positives["reordered"] = 1
+    return positives
+
+
 def split_dataset(
     user_features: pd.DataFrame,
     product_features: pd.DataFrame,
     user_product_features: pd.DataFrame,
     interactions: pd.DataFrame,
     seed: int = 42,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    negative_ratio: int = 4,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, LabelEncoder, LabelEncoder]:
     """Gera splits por usuário (train 70% / val 15% / test 15%).
 
-    Usa os itens do split nativo 'train' do Instacart como rótulo
-    (o próximo pedido do usuário). Divide por user_id, não por linha,
-    para evitar que o mesmo usuário apareça em mais de um conjunto
-    (data leakage).
+    Usa os itens do split nativo 'train' do Instacart como rótulos
+    positivos (o próximo pedido do usuário), e adiciona amostras
+    negativas para evitar avaliação inflada. Divide por user_id, não
+    por linha, para evitar que o mesmo usuário apareça em mais de um
+    conjunto (data leakage).
 
     Args:
         user_features: Features de usuário.
         product_features: Features de produto.
         user_product_features: Features do par user-produto.
         interactions: Tabela de interações completa.
-        seed: Semente para reprodutibilidade do shuffle.
+        seed: Semente para reprodutibilidade do shuffle e do sampling.
+        negative_ratio: Negativos sorteados por positivo.
 
     Returns:
-        Tupla (train, val, test) como DataFrames prontos para o modelo.
+        Tupla (train, val, test, user_encoder, product_encoder). Os
+        encoders devem ser salvos para permitir inferência futura com
+        os mesmos índices usados no treino.
     """
-    labels = interactions[interactions["split"] == "train"][
-        ["user_id", "product_id", "reordered"]
-    ]
+    positives = _build_positive_labels(interactions)
+    popular_products = (
+        interactions[interactions["split"] == "prior"]["product_id"]
+        .value_counts()
+        .head(2000)
+        .index.to_numpy()
+    )
+    labels = add_negative_samples(positives, popular_products, seed, negative_ratio)
+
     dataset = _merge_features(
         labels, user_features, product_features, user_product_features
     )
-    dataset = _encode_ids(dataset)
+    dataset, user_enc, prod_enc = _encode_ids(dataset)
 
     train_users, val_users = _split_users(dataset["user_id"].unique(), seed)
     is_train = dataset["user_id"].isin(train_users)
@@ -289,4 +393,4 @@ def split_dataset(
     train = dataset[is_train].reset_index(drop=True)
     val = dataset[is_val].reset_index(drop=True)
     test = dataset[~is_train & ~is_val].reset_index(drop=True)
-    return train, val, test
+    return train, val, test, user_enc, prod_enc
