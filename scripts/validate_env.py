@@ -49,7 +49,7 @@ def check_settings_variables() -> bool:
         "data_output_path",
         "early_stopping_patience",
         "azure_storage_account",
-        "azure_storage_container",
+        "azure_container_name",
         "azure_storage_key",
         "mlflow_tracking_uri",
         "mlflow_artifact_location",
