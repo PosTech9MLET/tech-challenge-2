@@ -33,8 +33,8 @@ stages:
       size: 2853
     - path: src/pipelines/preprocess_stage.py
       hash: md5
-      md5: f15ffe8dcef24d1825ccb30d4f8908aa
-      size: 5073
+      md5: 1c37580e21fb2a928acf03ae1657b786
+      size: 5175
     params:
       params.yaml:
         data.processed_dir: data/processed
@@ -73,12 +73,12 @@ stages:
       size: 1557546
     - path: src/features/feature_builder.py
       hash: md5
-      md5: bb330e02bf7678901e22381792e9dddb
-      size: 12837
+      md5: 356574f797a44c964a97e90d1e730827
+      size: 12862
     - path: src/pipelines/feature_eng_stage.py
       hash: md5
-      md5: 6f1174493a7607d94fff6086ac4dd03d
-      size: 5419
+      md5: 630f305768430ee46b3d5a3c3d2d3770
+      size: 5405
     params:
       params.yaml:
         data.features_dir: data/features
@@ -133,20 +133,20 @@ stages:
       size: 1363009
     - path: src/models/baseline.py
       hash: md5
-      md5: 1df7d431530f8c1fbdf6b080c7d9ef52
-      size: 4750
+      md5: 38b1a682bd7eadc2f6b36d75a31020d4
+      size: 4724
     - path: src/models/mlp.py
       hash: md5
       md5: 19567390fc13ecd57b183e2af9a621a4
       size: 2892
     - path: src/pipelines/train_stage.py
       hash: md5
-      md5: efc780301fa2cde9da758fa1ca5aa333
-      size: 5275
+      md5: 87a428dd639e60d4db4fb1152b2d516f
+      size: 7257
     - path: src/training/trainer.py
       hash: md5
-      md5: fdd80c49a752b3d4a6d9cd6c05c39b9f
-      size: 10184
+      md5: 7d9e6033e13113c277a8e113537e6940
+      size: 10186
     params:
       params.yaml:
         model.dropout: 0.3
@@ -167,12 +167,12 @@ stages:
       size: 108599
     - path: models/mlp_best.pt
       hash: md5
-      md5: 6e927af0e35bf10d33a844d6e058cfa4
+      md5: 339ac5353e5a3e69861d049f5a6dae41
       size: 22038229
     - path: models/train_metrics.json
       hash: md5
-      md5: ff6cbe64dd894c5bf4a234844fe94203
-      size: 233
+      md5: 5838af74e188450e748ee2713b0c2bab
+      size: 234
   evaluate:
     cmd: uv run python -m src.pipelines.evaluate_stage
     deps:
