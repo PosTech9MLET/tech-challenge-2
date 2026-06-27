@@ -10,11 +10,11 @@
 | Campo | Detalhe |
 |---|---|
 | **Nome** | RecommenderMLP |
-| **Versão** | 1.0 |
+| **Versão** | 3 |
 | **Tipo** | MLP Embedding-based (PyTorch) |
 | **Tarefa** | Recomendação de produtos — previsão de recompra |
 | **Dataset** | Instacart Online Grocery Basket Analysis |
-| **Registrado em** | MLflow Model Registry — `recommender-mlp` v1 |
+| **Registrado em** | MLflow Model Registry — `recommender-mlp` v3 |
 | **Stage** | Production |
 | **Data de treino** | Junho 2026 |
 
@@ -216,7 +216,8 @@ ser sub-representados nas recomendações.
 |---|---|
 | **Framework** | PyTorch ≥ 2.12.0 (CPU-only) |
 | **Serialização** | `state_dict` (.pt) + encoders (.pkl) |
-| **Versionamento** | MLflow Model Registry |
+| **Design Pattern** | Factory Pattern (`ModelFactory`) para criação de modelos |
+| **Versionamento** | MLflow Model Registry — fluxo challenger → champion (aliases) |
 | **Pipeline** | DVC (`dvc repro`) |
 | **Reprodutibilidade** | Seed 42 fixada em todas as etapas |
 
@@ -251,8 +252,8 @@ trainer = MLPTrainer.load("models/mlp_best.pt", model=model)
 
 | Nome | Papel |
 |---|---|
-| Gabriel Freitas | Arquitetura e infraestrutura |
-| Deyvid Manhães | Feature engineering e modelagem |
+| Gabriel Freitas |  |
+| Deyvid Manhães | |
 | Diego | — |
 | Lucas Molitor | — |
 

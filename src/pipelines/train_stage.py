@@ -14,6 +14,7 @@ from mlflow import MlflowClient
 
 from configs.settings import settings
 from src.models.baseline import PopularityBaseline
+from src.models.factory import ModelFactory
 from src.models.mlp import RecommenderMLP
 from src.training.trainer import MLPTrainer
 
@@ -58,7 +59,7 @@ def train_baseline(
     """
     log.info("Treinando PopularityBaseline...")
     with mlflow.start_run(run_name="popularity-baseline"):
-        baseline = PopularityBaseline()
+        baseline: PopularityBaseline = ModelFactory.create("baseline")
         baseline.fit(train)
         metrics = baseline.evaluate(val, k=10)
         mlflow.log_params({"model_type": "PopularityBaseline", "k": 10})
@@ -108,7 +109,8 @@ def _build_model_and_trainer(
     """
     n_users = int(train["user_id_enc"].max()) + 1
     n_products = int(train["product_id_enc"].max()) + 1
-    model = RecommenderMLP(
+    model: RecommenderMLP = ModelFactory.create(
+        "mlp",
         n_users=n_users,
         n_products=n_products,
         embedding_dim=mlp_params["embedding_dim"],
@@ -153,12 +155,46 @@ def train_mlp(
     return trainer, metrics, run_id
 
 
-def register_model(run_id: str, val_metrics: dict) -> None:
-    """Registra o MLP no Model Registry e promove para Production.
+def _set_alias_staging(
+    client: MlflowClient,
+    version: str,
+) -> None:
+    """Define o alias 'challenger' na versão em avaliação.
 
-    Cria uma versão no registro com status Staging e imediatamente
-    a promove para Production, logando as métricas de validação
-    como tags da versão registrada.
+    Na API moderna do MLflow (≥2.9), aliases substituem os stages
+    deprecated. 'challenger' equivale ao antigo 'Staging'.
+
+    Args:
+        client: Cliente MLflow autenticado.
+        version: Versão do modelo no Registry.
+    """
+    client.set_registered_model_alias(MODEL_NAME, "challenger", version)
+    log.info("Alias 'challenger' definido para '%s' v%s.", MODEL_NAME, version)
+
+
+def _set_alias_production(
+    client: MlflowClient,
+    version: str,
+) -> None:
+    """Promove a versão para produção definindo o alias 'champion'.
+
+    Na API moderna do MLflow (≥2.9), aliases substituem os stages
+    deprecated. 'champion' equivale ao antigo 'Production'.
+
+    Args:
+        client: Cliente MLflow autenticado.
+        version: Versão do modelo no Registry.
+    """
+    client.set_registered_model_alias(MODEL_NAME, "champion", version)
+    log.info("Alias 'champion' definido para '%s' v%s.", MODEL_NAME, version)
+
+
+def register_model(run_id: str, val_metrics: dict) -> None:
+    """Registra o MLP no Model Registry seguindo o fluxo challenger → champion.
+
+    Usa a API moderna de aliases do MLflow (≥2.9) em substituição aos
+    stages deprecated. O fluxo challenger → champion equivale ao
+    antigo Staging → Production.
 
     Args:
         run_id: ID do run do MLflow onde o modelo foi logado.
@@ -173,12 +209,11 @@ def register_model(run_id: str, val_metrics: dict) -> None:
 
     client.set_registered_model_tag(MODEL_NAME, "framework", "pytorch")
     client.set_registered_model_tag(MODEL_NAME, "dataset", "instacart")
-
     for metric, value in val_metrics.items():
         client.set_model_version_tag(MODEL_NAME, version, metric, str(value))
 
-    client.set_model_version_tag(MODEL_NAME, version, "stage", "Production")
-    log.info("Modelo '%s' v%s promovido para Production.", MODEL_NAME, version)
+    _set_alias_staging(client, version)
+    _set_alias_production(client, version)
 
 
 def save_artifacts(
