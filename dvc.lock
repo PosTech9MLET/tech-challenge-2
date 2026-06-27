@@ -141,8 +141,8 @@ stages:
       size: 2892
     - path: src/pipelines/train_stage.py
       hash: md5
-      md5: 87a428dd639e60d4db4fb1152b2d516f
-      size: 7257
+      md5: 04d4743f67b8d1d6d604a8a4af51e044
+      size: 8391
     - path: src/training/trainer.py
       hash: md5
       md5: 7d9e6033e13113c277a8e113537e6940
@@ -167,12 +167,12 @@ stages:
       size: 108599
     - path: models/mlp_best.pt
       hash: md5
-      md5: 339ac5353e5a3e69861d049f5a6dae41
+      md5: 9941dc080b04c3b9806e0784b37bdec7
       size: 22038229
     - path: models/train_metrics.json
       hash: md5
-      md5: 5838af74e188450e748ee2713b0c2bab
-      size: 234
+      md5: f093138031dc28d1885ee51458907e16
+      size: 233
   evaluate:
     cmd: uv run python -m src.pipelines.evaluate_stage
     deps:
