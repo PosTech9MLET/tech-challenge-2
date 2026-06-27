@@ -190,7 +190,7 @@ stages:
       size: 1363009
     - path: models/mlp_best.pt
       hash: md5
-      md5: 339ac5353e5a3e69861d049f5a6dae41
+      md5: 9941dc080b04c3b9806e0784b37bdec7
       size: 22038229
     - path: src/models/baseline.py
       hash: md5
@@ -217,5 +217,5 @@ stages:
     outs:
     - path: models/eval_metrics.json
       hash: md5
-      md5: 76b156960308d03702d3522ad2efc7e7
-      size: 1073
+      md5: eba4035a4560edb2c58a75272e7edd24
+      size: 1070
