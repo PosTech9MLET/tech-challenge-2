@@ -18,7 +18,7 @@ Sistema de recomendação de produtos baseado no comportamento de compra de usu�
 |---|---|
 | Gabriel Freitas | RM370409 |
 | Diego | — |
-| Deyvid | — |
+| Deyvid Manhães | RM371074 |
 | Lucas Molitor | — |
 
 ---
@@ -179,6 +179,23 @@ Se tudo estiver correto, a saída será:
 ```
 
 ---
+### Passo 8 — Execute o pipeline completo
+
+```bash
+uv run dvc repro
+```
+
+Isso executa os 4 stages em ordem: `preprocess → feature_eng → train → evaluate`.
+
+Para visualizar os experimentos e o modelo registrado no MLflow:
+
+```bash
+uv run mlflow ui --backend-store-uri mlruns/
+```
+
+Acesse `http://127.0.0.1:5000` no navegador.
+
+---
 
 ## Avaliação
 
@@ -305,10 +322,10 @@ Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (m
 | EDA | Análise Exploratória de Dados | ✅ Concluído |
 | Etapa 1 | Clean Code e Estrutura | ✅ Concluído |
 | Etapa 2 | Ambiente e Dependências | ✅ Concluído |
-| Etapa 3 | Feature Engineering + DVC Pipeline | 🔄 Em progresso |
-| Etapa 3 | Docker (multi-stage) | ⏳ Pendente |
-| Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ⏳ Pendente |
-| Etapa 4 | MLflow Model Registry | ⏳ Pendente |
+| Etapa 3 | Feature Engineering + DVC Pipeline | ✅ Concluído |
+| Etapa 3 | Docker (multi-stage) | 🔄 Em progresso |
+| Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ✅ Concluído  |
+| Etapa 4 | MLflow Model Registry | ✅ Concluído |
 | Entrega | README + Vídeo STAR | ⏳ Pendente |
 
 ---
