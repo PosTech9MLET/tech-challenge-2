@@ -1,0 +1,41 @@
+# Controle de versão
+.git/
+.gitignore
+
+# Ambiente virtual e cache Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.ruff_cache/
+
+# Dados (montados via volume)
+data/raw/
+data/processed/
+data/features/
+
+# Modelos treinados (montados via volume)
+models/
+
+# MLflow local
+mlruns/
+mlflow.db
+
+# Notebooks (não necessários em produção)
+notebooks/
+
+# Arquivos de ambiente
+.env
+
+# Documentação
+*.md
+LICENSE
+
+# Testes e CI
+tests/
+.pre-commit-config.yaml
+
+# Arquivos do sistema
+.DS_Store
+*.log

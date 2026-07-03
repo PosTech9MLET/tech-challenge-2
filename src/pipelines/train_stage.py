@@ -64,7 +64,12 @@ def train_baseline(
         metrics = baseline.evaluate(val, k=10)
         mlflow.log_params({"model_type": "PopularityBaseline", "k": 10})
         mlflow.log_metrics(metrics)
-        mlflow.sklearn.log_model(baseline, artifact_path="baseline_model")
+        mlflow.sklearn.log_model(
+            baseline,
+            artifact_path="baseline_model",
+            skops_trusted_types=["src.models.baseline.PopularityBaseline"],
+        )
+
         log.info("Baseline val metrics: %s", metrics)
     return baseline, metrics
 
@@ -149,7 +154,11 @@ def train_mlp(
         model, trainer = _build_model_and_trainer(train, mlp_params)
         metrics = trainer.fit(train=train, val=val)
         mlflow.log_metrics(metrics)
-        mlflow.pytorch.log_model(model, artifact_path="mlp_model")
+        mlflow.pytorch.log_model(
+            model,
+            artifact_path="mlp_model",
+            serialization_format="pickle",
+        )
         log.info("MLP val metrics: %s", metrics)
         run_id = run.info.run_id
     return trainer, metrics, run_id

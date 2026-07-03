@@ -1,0 +1,63 @@
+services:
+
+  # ─────────────────────────────────────────────────────────────
+  # MLflow Server
+  # Tracking de experimentos e Model Registry acessível em
+  # http://localhost:5000 durante o treino e avaliação.
+  # ─────────────────────────────────────────────────────────────
+  mlflow:
+    
+    image: ghcr.io/mlflow/mlflow:v3.1.0
+    container_name: mlflow-server
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - tc_network
+
+  # ─────────────────────────────────────────────────────────────
+  # Training Service
+  # Inicializa o DVC, baixa os dados do Azure e executa o
+  # pipeline completo (dvc repro) após o MLflow estar pronto.
+  # ─────────────────────────────────────────────────────────────
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: training-service
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - mlflow_data:/mlflow
+    networks:
+      - tc_network
+
+volumes:
+  mlflow_data:
+    driver: local
+
+networks:
+  tc_network:
+    driver: bridge
