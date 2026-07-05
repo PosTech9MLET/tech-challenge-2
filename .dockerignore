@@ -20,6 +20,7 @@ htmlcov
 # Dados, modelos e artefatos locais
 data/raw
 data/processed
+data/features
 models
 mlruns
 
