@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Ambiente local e credenciais
+.env
+.env.*
+!.env.example
+!.env.docker.example
+.venv
+
+# Cache e arquivos temporários Python
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Dados, modelos e artefatos locais
+data/raw
+data/processed
+models
+mlruns
+
+# Notebooks
+notebooks
+
+# DVC: cache e configurações locais
+.dvc/cache
+.dvc/tmp
+.dvc/config.local
+
+# IDE
+.vscode
+.idea
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
