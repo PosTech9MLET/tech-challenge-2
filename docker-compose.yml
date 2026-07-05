@@ -53,6 +53,7 @@ services:
       mlflow:
         condition: service_healthy
     volumes:
+      - ./.git:/app/.git:ro
       - ./data:/app/data
       - ./models:/app/models
       - ./.dvc/cache:/app/.dvc/cache
