@@ -1,5 +1,0 @@
-features
-models
-pipelines
-training
-utils

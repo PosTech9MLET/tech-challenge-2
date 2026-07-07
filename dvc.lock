@@ -1,0 +1,221 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: uv run python -m src.pipelines.preprocess_stage
+    deps:
+    - path: data/raw/aisles.csv
+      hash: md5
+      md5: bc49e521faa60e1542d4a94cac3e3bb0
+      size: 2603
+    - path: data/raw/departments.csv
+      hash: md5
+      md5: 18d5219db49bd50b403d39016c3ecdc5
+      size: 270
+    - path: data/raw/order_products__prior.csv
+      hash: md5
+      md5: 8bca7ad1968ee8e07760b94db74461fb
+      size: 577550706
+    - path: data/raw/order_products__train.csv
+      hash: md5
+      md5: 5d8f7580855097e3644ea626ee430b75
+      size: 24680147
+    - path: data/raw/orders.csv
+      hash: md5
+      md5: dd0b2f4ee716409b8e79e7b1c611a0b8
+      size: 108968645
+    - path: data/raw/products.csv
+      hash: md5
+      md5: dfcfded9d4af77d8b747913a4cbe6ffc
+      size: 2166953
+    - path: src/features/preprocess.py
+      hash: md5
+      md5: 02a9376966c92ab17edee3142fb35e7a
+      size: 2853
+    - path: src/pipelines/preprocess_stage.py
+      hash: md5
+      md5: 1c37580e21fb2a928acf03ae1657b786
+      size: 5175
+    params:
+      params.yaml:
+        data.processed_dir: data/processed
+        data.raw_dir: data/raw
+    outs:
+    - path: data/processed/interactions.parquet
+      hash: md5
+      md5: ec58d728aa3f3cb67b11e271682a2069
+      size: 192499382
+    - path: data/processed/orders_clean.parquet
+      hash: md5
+      md5: 532f82f457957982388488d7dd207449
+      size: 27729116
+    - path: data/processed/preprocess_metrics.json
+      hash: md5
+      md5: 927e2b0370a464cecb858b8d84a897d6
+      size: 183
+    - path: data/processed/products_full.parquet
+      hash: md5
+      md5: 7be4f7af9d7212a762b61323920338de
+      size: 1557546
+  feature_eng:
+    cmd: uv run python -m src.pipelines.feature_eng_stage
+    deps:
+    - path: data/processed/interactions.parquet
+      hash: md5
+      md5: ec58d728aa3f3cb67b11e271682a2069
+      size: 192499382
+    - path: data/processed/orders_clean.parquet
+      hash: md5
+      md5: 532f82f457957982388488d7dd207449
+      size: 27729116
+    - path: data/processed/products_full.parquet
+      hash: md5
+      md5: 7be4f7af9d7212a762b61323920338de
+      size: 1557546
+    - path: src/features/feature_builder.py
+      hash: md5
+      md5: 356574f797a44c964a97e90d1e730827
+      size: 12862
+    - path: src/pipelines/feature_eng_stage.py
+      hash: md5
+      md5: 630f305768430ee46b3d5a3c3d2d3770
+      size: 5405
+    params:
+      params.yaml:
+        data.features_dir: data/features
+        train.seed: 42
+    outs:
+    - path: data/features/feature_metrics.json
+      hash: md5
+      md5: 3a4fc570ea9c3e986914e1fbf4971c2f
+      size: 169
+    - path: data/features/product_features.parquet
+      hash: md5
+      md5: 0f056c6f8b7ae2fbdf901140f02adff7
+      size: 973164
+    - path: data/features/test.parquet
+      hash: md5
+      md5: 8fae8396a485f757e0714af505327671
+      size: 14305046
+    - path: data/features/train.parquet
+      hash: md5
+      md5: 93c24b58cfc163d9fe3596a03e94c9a2
+      size: 58593218
+    - path: data/features/user_features.parquet
+      hash: md5
+      md5: 9731fc2e447cca719036c64844e39889
+      size: 3895790
+    - path: data/features/user_product_features.parquet
+      hash: md5
+      md5: 28c30ad8bc1aadf5554333dc5712f1b8
+      size: 73106392
+    - path: data/features/val.parquet
+      hash: md5
+      md5: 8d029658451a4239ad7f6c246a954c02
+      size: 14325072
+    - path: models/encoders.pkl
+      hash: md5
+      md5: 2cde079f19f63e121d3223b01d7853ad
+      size: 1363009
+  train:
+    cmd: uv run python -m src.pipelines.train_stage
+    deps:
+    - path: data/features/train.parquet
+      hash: md5
+      md5: 93c24b58cfc163d9fe3596a03e94c9a2
+      size: 58593218
+    - path: data/features/val.parquet
+      hash: md5
+      md5: 8d029658451a4239ad7f6c246a954c02
+      size: 14325072
+    - path: models/encoders.pkl
+      hash: md5
+      md5: 2cde079f19f63e121d3223b01d7853ad
+      size: 1363009
+    - path: src/models/baseline.py
+      hash: md5
+      md5: 38b1a682bd7eadc2f6b36d75a31020d4
+      size: 4724
+    - path: src/models/mlp.py
+      hash: md5
+      md5: 19567390fc13ecd57b183e2af9a621a4
+      size: 2892
+    - path: src/pipelines/train_stage.py
+      hash: md5
+      md5: 04d4743f67b8d1d6d604a8a4af51e044
+      size: 8391
+    - path: src/training/trainer.py
+      hash: md5
+      md5: 7d9e6033e13113c277a8e113537e6940
+      size: 10186
+    params:
+      params.yaml:
+        model.dropout: 0.3
+        model.embedding_dim: 32
+        model.hidden_layers:
+        - 256
+        - 128
+        - 64
+        train.batch_size: 1024
+        train.early_stopping_patience: 5
+        train.epochs: 30
+        train.lr: 0.001
+        train.seed: 42
+    outs:
+    - path: models/baseline.pkl
+      hash: md5
+      md5: b217a51c1743102a9cfc7fea83875721
+      size: 108599
+    - path: models/mlp_best.pt
+      hash: md5
+      md5: 9941dc080b04c3b9806e0784b37bdec7
+      size: 22038229
+    - path: models/train_metrics.json
+      hash: md5
+      md5: f093138031dc28d1885ee51458907e16
+      size: 233
+  evaluate:
+    cmd: uv run python -m src.pipelines.evaluate_stage
+    deps:
+    - path: data/features/test.parquet
+      hash: md5
+      md5: 8fae8396a485f757e0714af505327671
+      size: 14305046
+    - path: models/baseline.pkl
+      hash: md5
+      md5: b217a51c1743102a9cfc7fea83875721
+      size: 108599
+    - path: models/encoders.pkl
+      hash: md5
+      md5: 2cde079f19f63e121d3223b01d7853ad
+      size: 1363009
+    - path: models/mlp_best.pt
+      hash: md5
+      md5: 9941dc080b04c3b9806e0784b37bdec7
+      size: 22038229
+    - path: src/models/baseline.py
+      hash: md5
+      md5: 38b1a682bd7eadc2f6b36d75a31020d4
+      size: 4724
+    - path: src/models/mlp.py
+      hash: md5
+      md5: 19567390fc13ecd57b183e2af9a621a4
+      size: 2892
+    - path: src/pipelines/evaluate_stage.py
+      hash: md5
+      md5: 93fed6c830aabb165ca89af28fd18946
+      size: 4937
+    - path: src/training/trainer.py
+      hash: md5
+      md5: 7d9e6033e13113c277a8e113537e6940
+      size: 10186
+    params:
+      params.yaml:
+        evaluate.k_values:
+        - 5
+        - 10
+        - 20
+    outs:
+    - path: models/eval_metrics.json
+      hash: md5
+      md5: eba4035a4560edb2c58a75272e7edd24
+      size: 1070

@@ -5,6 +5,7 @@ data/features/
 
 # Environment
 .env
+.env.docker
 
 # Python
 __pycache__/
@@ -22,4 +23,8 @@ mlruns/
 .ruff_cache/
 
 # Models
-models/
+*.egg-info/
+mlflow.db
+models/*.json
+models/*.pt
+models/*.pkl
