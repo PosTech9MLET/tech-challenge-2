@@ -17,9 +17,8 @@ Sistema de recomendação de produtos baseado no comportamento de compra de usu�
 | Nome | RM |
 |---|---|
 | Gabriel Freitas | RM370409 |
-| Diego | — |
+| Diego | RM372988 |
 | Deyvid Manhães | RM371074 |
-| Lucas Molitor | — |
 
 ---
 
@@ -38,21 +37,31 @@ tech-challenge-2/
 ├── notebooks/
 │   └── eda_instacart.ipynb     # Análise Exploratória de Dados
 ├── scripts/
+│   ├── setup_dvc.py            # Configura DVC remote com Key Vault
 │   └── validate_env.py         # Validação do ambiente
 ├── src/
 │   ├── features/
 │   │   ├── __init__.py
+│   │   ├── feature_builder.py  # Feature engineering
 │   │   └── preprocess.py       # Funções de carregamento e limpeza
-│   ├── models/                 # Modelos ML (baseline + MLP)
-│   ├── pipelines/              # Pipelines DVC
-│   ├── training/               # Lógica de treino
+│   ├── models/
+│   │   ├── baseline.py         # PopularityBaseline + métricas
+│   │   ├── factory.py          # ModelFactory (design pattern)
+│   │   └── mlp.py              # RecommenderMLP (PyTorch)
+│   ├── pipelines/              # Stages do pipeline DVC
+│   ├── training/               # Lógica de treino com early stopping
 │   └── utils/                  # Utilitários compartilhados
-├── tests/                      # Testes automatizados
+├── tests/                      # Testes automatizados (pytest)
 ├── .dvc/                       # Configuração DVC
 ├── .env.example                # Template de variáveis de ambiente
+├── .env.docker.example         # Template para execução com Docker
 ├── .gitignore
 ├── .pre-commit-config.yaml     # Hooks de qualidade de código
-├── main.py
+├── Dockerfile                  # Multi-stage: builder + runtime
+├── MODEL_CARD.md               # Documentação do modelo
+├── docker-compose.yml          # Serviços mlflow + train
+├── dvc.yaml                    # Pipeline DVC (4 stages)
+├── params.yaml                 # Hiperparâmetros externalizados
 ├── pyproject.toml              # Dependências e configuração do projeto
 └── uv.lock                     # Lock file para reprodutibilidade
 ```
@@ -70,7 +79,9 @@ Credenciais do Service Principal no .env
              ↓
    Key Vault → busca AZURE-STORAGE-KEY
              ↓
-   DVC pull → baixa os CSVs do Blob Storage
+   setup_dvc.py configura o remote local
+             ↓
+   dvc pull → baixa os CSVs do Blob Storage
              ↓
         Projeto pronto
 ```
@@ -178,7 +189,6 @@ Se tudo estiver correto, a saída será:
 ✓ Ambiente de desenvolvimento validado com sucesso!
 ```
 
----
 ### Passo 8 — Execute o pipeline completo
 
 ```bash
@@ -195,32 +205,53 @@ uv run mlflow ui --backend-store-uri mlruns/
 
 Acesse `http://127.0.0.1:5000` no navegador.
 
-## Execução comDocker
+---
 
-O projeto disponibiliza uma imagem Docker **multi-stage** e serviços Docker
-Compose para executar o pipeline DVC em ambiente isolado e acompanhar
-experimentos no MLflow.
+## Testes
+
+O projeto usa `pytest` para testes unitários. Para rodar todos os testes:
+
+```bash
+uv run pytest tests/ -v
+```
+
+Para rodar com relatório de cobertura:
+
+```bash
+uv run pytest tests/ -v --cov=src --cov=configs --cov-report=term-missing
+```
+
+Os testes cobrem os seguintes módulos:
+
+| Arquivo | Módulo testado |
+|---|---|
+| `tests/test_preprocess.py` | `src/features/preprocess.py` |
+| `tests/test_baseline.py` | `src/models/baseline.py` |
+| `tests/test_factory.py` | `src/models/factory.py` |
+| `tests/test_mlp.py` | `src/models/mlp.py` |
+
+---
+
+## Execução com Docker
+
+O projeto disponibiliza uma imagem Docker **multi-stage** e serviços Docker Compose para executar o pipeline DVC em ambiente isolado e acompanhar experimentos no MLflow.
 
 A arquitetura separa responsabilidades:
 
 - A imagem Docker contém somente código e dependências de execução.
-- Dados, modelos, cache DVC e metadados Git são montados no container apenas
-  durante a execução.
-- Credenciais Azure permanecem no arquivo `.env` local e nunca são inseridas
-  na imagem Docker.
-- O MLflow utiliza um volume Docker persistente para armazenar experimentos,
-  métricas, artefatos e modelos registrados.
+- Dados, modelos, cache DVC e metadados Git são montados no container apenas durante a execução.
+- Credenciais Azure permanecem no arquivo `.env` local e nunca são inseridas na imagem Docker.
+- O MLflow utiliza um volume Docker persistente para armazenar experimentos, métricas, artefatos e modelos registrados.
 
 ### Pré-requisitos
 
 Antes de usar Docker, garanta que os itens abaixo estejam disponíveis:
 
-- Docker Desktop em execução;
-- Docker Compose v2;
-- Git;
-- `uv` instalado para baixar os dados via DVC no host;
-- Arquivo `.env` configurado com as credenciais Azure quando for necessário
-  executar `dvc pull`.
+- Docker Desktop em execução
+- Docker Compose v2
+- Git
+- `uv` instalado para baixar os dados via DVC no host
+- Arquivo `.env` configurado com as credenciais Azure
 
 Verifique a instalação do Docker:
 
@@ -229,26 +260,17 @@ docker version
 docker compose version
 ```
 
----
-
 ### Estrutura Docker
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `Dockerfile` | Cria uma imagem multi-stage com Python, `uv`, DVC, MLflow, PyTorch e dependências de produção. |
-| `.dockerignore` | Impede que secrets, dados, modelos, ambientes virtuais e caches locais entrem na imagem. |
-| `docker-compose.yml` | Orquestra os serviços `mlflow` e `train`. |
-| `.env.docker.example` | Template de variáveis de ambiente usadas pelo container de treino. |
-| `.env.docker` | Arquivo local usado pelo Docker Compose. Nunca deve ser commitado. |
-
-A imagem final executa com o usuário não privilegiado `app`, evitando que o
-pipeline rode como `root`.
-
----
+| `Dockerfile` | Imagem multi-stage com Python, `uv`, DVC, MLflow e PyTorch |
+| `.dockerignore` | Impede que secrets, dados e caches entrem na imagem |
+| `docker-compose.yml` | Orquestra os serviços `mlflow` e `train` |
+| `.env.docker.example` | Template de variáveis para o container de treino |
+| `.env.docker` | Arquivo local usado pelo Docker Compose (nunca commitado) |
 
 ### Configuração inicial do Docker
-
-Crie o arquivo local usado pelo Docker Compose.
 
 No Windows PowerShell:
 
@@ -262,133 +284,44 @@ No Linux ou macOS:
 cp .env.docker.example .env.docker
 ```
 
-O arquivo `.env.docker` já contém os caminhos e a URL interna do MLflow:
-
-```dotenv
-SEED=42
-DATA_INPUT_PATH=data/raw
-DATA_OUTPUT_PATH=data/processed
-EARLY_STOPPING_PATIENCE=5
-
-AZURE_STORAGE_ACCOUNT=stgtechchallenge
-AZURE_CONTAINER_NAME=tech-challenge-f2
-AZURE_STORAGE_KEY=
-
-MLFLOW_TRACKING_URI=http://mlflow:5000
-MLFLOW_ARTIFACT_LOCATION=mlflow-artifacts:/
-```
-
-> Não adicione `AZURE_CLIENT_SECRET`, `AZURE_STORAGE_KEY` ou outras credenciais
-> reais ao `.env.docker`. O download de dados é executado no host usando o
-> arquivo `.env` local.
-
-Valide a configuração final do Docker Compose:
+Valide a configuração:
 
 ```bash
 docker compose config
 ```
 
-O resultado deve listar os serviços `mlflow` e `train`.
-
----
-
 ### Construir a imagem
-
-Construa a imagem Docker:
 
 ```bash
 docker compose build
 ```
 
-A primeira execução pode demorar alguns minutos, pois o Docker precisa baixar
-dependências grandes, como PyTorch, SciPy, PyArrow, DVC e MLflow.
-
-Em builds posteriores, o Docker reutiliza cache sempre que possível.
-
-Use rebuild sem cache apenas quando houver problema de dependência ou alteração
-relevante no `Dockerfile`:
-
-```bash
-docker compose build --no-cache
-```
-
----
-
 ### Subir o MLflow
-
-Inicie o serviço MLflow em segundo plano:
 
 ```bash
 docker compose up -d mlflow
 ```
 
-Verifique o estado do serviço:
+Acesse a interface em `http://localhost:5000`.
 
-```bash
-docker compose ps
-```
-
-O status esperado é:
-
-```text
-healthy
-```
-
-Acesse a interface em:
-
-```text
-http://localhost:5000
-```
----
-
-### Validar o ambiente Docker
-
-```bash
-docker compose run --rm --no-deps train python -c "import torch, sklearn, pandas, mlflow, dvc; print('Dependencias Docker OK')"
-docker compose run --rm --no-deps train dvc dag
-```
-
-### Baixar os dados com DVC
-
-Configure as credenciais Azure no arquivo `.env` local e execute no host:
+### Baixar os dados com DVC (no host)
 
 ```bash
 uv run python scripts/setup_dvc.py
 uv run dvc pull
 ```
 
----
-
-### Visualizar o pipeline DVC sem executar treinamento
-
-O comando abaixo mostra o DAG do pipeline sem processar dados ou treinar modelos:
-
-```bash
-docker compose run --rm --no-deps train dvc dag
-```
-
-O fluxo esperado é:
-
-```text
-preprocess → feature_eng → train → evaluate
-```
-
-O container recebe `.git` somente para leitura durante a execução. Isso é
-necessário porque o DVC utiliza metadados do repositório Git, mas o histórico
-Git não é incluído na imagem Docker.
-
----
-
 ### Executar o pipeline no container
-
-Com o serviço MLflow ativo e os dados disponíveis em `data/raw`:
 
 ```bash
 docker compose run --rm --no-deps train dvc repro
 ```
 
-Os artefatos do pipeline serão persistidos localmente em `data/` e `models/`.
-Os experimentos, métricas e modelos registrados ficam disponíveis no MLflow.
+### Visualizar o DAG do pipeline
+
+```bash
+docker compose run --rm --no-deps train dvc dag
+```
 
 ### Encerrar os serviços
 
@@ -396,8 +329,7 @@ Os experimentos, métricas e modelos registrados ficam disponíveis no MLflow.
 docker compose down
 ```
 
-> Não use `docker compose down -v` a menos que queira remover também o
-> histórico persistido do MLflow.
+> Não use `docker compose down -v` a menos que queira remover o histórico persistido do MLflow.
 
 ---
 
@@ -422,17 +354,19 @@ AZURE_TENANT_ID=11dbbfe2-89b8-4549-be10-cec364e59551
 Para contribuir com o projeto, siga este fluxo:
 
 ```bash
-# 1. Crie uma branch para sua feature
+# 1. Crie uma branch para sua feature a partir da dev
+git checkout dev
 git checkout -b feat/nome-da-feature
 
 # 2. Desenvolva e teste localmente
+uv run pytest tests/ -v
 uv run python scripts/validate_env.py
 
 # 3. O pre-commit roda automaticamente ao commitar
 git add .
 git commit -m "feat: descrição da mudança"
 
-# 4. Abra um Pull Request para main
+# 4. Abra um Pull Request para dev
 git push origin feat/nome-da-feature
 ```
 
@@ -467,6 +401,21 @@ uv run pre-commit run --all-files
 ```
 
 Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (modernização), `D` (docstrings Google style).
+
+---
+
+## Pipeline DVC
+
+O pipeline é composto por 4 stages executados em sequência via `dvc repro`:
+
+| Stage | Comando | Saída |
+|---|---|---|
+| `preprocess` | `preprocess_stage.py` | Parquets limpos em `data/processed/` |
+| `feature_eng` | `feature_eng_stage.py` | Features em `data/features/` + encoders |
+| `train` | `train_stage.py` | Modelos em `models/` + runs no MLflow |
+| `evaluate` | `evaluate_stage.py` | Métricas em `models/eval_metrics.json` |
+
+Os hiperparâmetros são externalizados em `params.yaml` e versionados pelo DVC.
 
 ---
 
@@ -527,9 +476,10 @@ Regras ativas: `E` (estilo), `F` (lógico), `I` (imports), `N` (naming), `UP` (m
 | Etapa 1 | Clean Code e Estrutura | ✅ Concluído |
 | Etapa 2 | Ambiente e Dependências | ✅ Concluído |
 | Etapa 3 | Feature Engineering + DVC Pipeline | ✅ Concluído |
-| Etapa 3 | Docker (multi-stage) | ✅ Concluído  |
-| Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ✅ Concluído  |
+| Etapa 3 | Docker (multi-stage) | ✅ Concluído |
+| Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ✅ Concluído |
 | Etapa 4 | MLflow Model Registry | ✅ Concluído |
+| Testes | pytest (preprocess, baseline, factory, MLP) | ✅ Concluído |
 | Entrega | README + Vídeo STAR | ⏳ Pendente |
 
 ---
