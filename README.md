@@ -480,20 +480,69 @@ Os hiperparâmetros são externalizados em `params.yaml` e versionados pelo DVC.
 | Etapa 4 | Modelagem (Baseline + MLP PyTorch) | ✅ Concluído |
 | Etapa 4 | MLflow Model Registry | ✅ Concluído |
 | Testes | pytest (preprocess, baseline, factory, MLP) | ✅ Concluído |
-| Entrega | README + Vídeo STAR | ⏳ Pendente |
+| Entrega | README + Vídeo STAR | ✅ Concluído |
 
 ---
 
-## Deploy em Nuvem
+## Reproduzindo o Pipeline com MLflow na Nuvem
 
-O MLflow está disponível publicamente via Azure Container Instances:
+Siga esses passos para rodar o pipeline completo e registrar os experimentos
+diretamente no MLflow hospedado na Azure.
+
+### Passo 1 — Clone o repositório
+
+```bash
+git clone https://github.com/PosTech9MLET/tech-challenge-2.git
+cd tech-challenge-2
+```
+
+### Passo 2 — Instale as dependências
+
+```bash
+uv sync
+```
+
+### Passo 3 — Configure o ambiente
+
+```bash
+cp .env.example .env
+```
+
+Preencha o `.env` com as credenciais do Service Principal e a URL do MLflow na nuvem:
+
+```dotenv
+SEED=42
+EARLY_STOPPING_PATIENCE=5
+AZURE_STORAGE_ACCOUNT=stgtechchallenge
+AZURE_STORAGE_KEY=
+AZURE_CONTAINER_NAME=tech-challenge-f2
+MLFLOW_TRACKING_URI=http://techchallenge-mlflow.brazilsouth.azurecontainer.io:5000
+MLFLOW_ARTIFACT_LOCATION=
+AZURE_CLIENT_ID=1baf74a9-4ad6-4d3d-88db-c3070e970684
+AZURE_CLIENT_SECRET=<fornecido junto com o vídeo>
+AZURE_TENANT_ID=11dbbfe2-89b8-4549-be10-cec364e59551
+```
+
+### Passo 4 — Configure o DVC e baixe os dados
+
+```bash
+uv run python scripts/setup_dvc.py
+uv run dvc pull
+```
+
+### Passo 5 — Execute o pipeline completo
+
+```bash
+uv run dvc repro
+```
+
+Os 4 stages serão executados em ordem: `preprocess → feature_eng → train → evaluate`.
+Os experimentos e modelos serão registrados em tempo real na UI pública:
 
 > **MLflow UI:** http://techchallenge-mlflow.brazilsouth.azurecontainer.io:5000
 
-| Recurso | Nome | Finalidade |
-|---|---|---|
-| Azure Container Registry | `techchallengecr` | Armazena a imagem Docker |
-| Azure Container Instance | `mlflow-server` | Serve a UI do MLflow publicamente |
+> ⚠️ O pipeline processa ~32M de interações — o tempo de execução varia entre
+> 2 e 6 horas dependendo da máquina.
 
 ---
 
