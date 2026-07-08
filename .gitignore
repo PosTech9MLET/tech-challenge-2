@@ -5,7 +5,6 @@ data/features/
 
 # Environment
 .env
-.env.example
 .env.docker
 
 # Python
@@ -25,10 +24,6 @@ mlruns/
 
 # Models
 *.egg-info/
-mlflow.db
-models/*.json
-models/*.pt
-models/*.pkl
 mlflow.db
 models/*.json
 models/*.pt
