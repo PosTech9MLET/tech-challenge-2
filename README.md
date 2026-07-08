@@ -484,6 +484,19 @@ Os hiperparâmetros são externalizados em `params.yaml` e versionados pelo DVC.
 
 ---
 
+## Deploy em Nuvem
+
+O MLflow está disponível publicamente via Azure Container Instances:
+
+> **MLflow UI:** http://techchallenge-mlflow.brazilsouth.azurecontainer.io:5000
+
+| Recurso | Nome | Finalidade |
+|---|---|---|
+| Azure Container Registry | `techchallengecr` | Armazena a imagem Docker |
+| Azure Container Instance | `mlflow-server` | Serve a UI do MLflow publicamente |
+
+---
+
 ## Licença
 
 MIT License — veja [LICENSE](LICENSE) para detalhes.
