@@ -29,12 +29,12 @@ stages:
       size: 2166953
     - path: src/features/preprocess.py
       hash: md5
-      md5: 02a9376966c92ab17edee3142fb35e7a
-      size: 2853
+      md5: e485435cc4b2cfe6bde8bacf7b6e3d35
+      size: 2958
     - path: src/pipelines/preprocess_stage.py
       hash: md5
-      md5: 1c37580e21fb2a928acf03ae1657b786
-      size: 5175
+      md5: 94090468f642b419e6cfaefa36075adf
+      size: 5336
     params:
       params.yaml:
         data.processed_dir: data/processed
@@ -50,8 +50,8 @@ stages:
       size: 27729116
     - path: data/processed/preprocess_metrics.json
       hash: md5
-      md5: 927e2b0370a464cecb858b8d84a897d6
-      size: 183
+      md5: 654e3d8f7f95d27418123f37e1d10b8a
+      size: 190
     - path: data/processed/products_full.parquet
       hash: md5
       md5: 7be4f7af9d7212a762b61323920338de
@@ -73,12 +73,12 @@ stages:
       size: 1557546
     - path: src/features/feature_builder.py
       hash: md5
-      md5: 356574f797a44c964a97e90d1e730827
-      size: 12862
+      md5: 00473fa7abd5b538ff0adbcb776bb41b
+      size: 13258
     - path: src/pipelines/feature_eng_stage.py
       hash: md5
-      md5: 630f305768430ee46b3d5a3c3d2d3770
-      size: 5405
+      md5: 89134c7f11c9f99c156ed5c1bf442f86
+      size: 5566
     params:
       params.yaml:
         data.features_dir: data/features
@@ -86,8 +86,8 @@ stages:
     outs:
     - path: data/features/feature_metrics.json
       hash: md5
-      md5: 3a4fc570ea9c3e986914e1fbf4971c2f
-      size: 169
+      md5: bdb69b3d7bcbf92728f09930d9cc275e
+      size: 176
     - path: data/features/product_features.parquet
       hash: md5
       md5: 0f056c6f8b7ae2fbdf901140f02adff7
