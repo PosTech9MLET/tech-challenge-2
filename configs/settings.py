@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     azure_storage_account: str = ""
     azure_container_name: str = ""
     azure_storage_key: str = ""
-    azure_keyvault_name: str = "techchallengevaults"
+    azure_keyvault_name: str = ""
 
     # mlflow
     mlflow_tracking_uri: str = ""

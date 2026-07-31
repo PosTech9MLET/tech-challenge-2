@@ -15,6 +15,10 @@ def setup_dvc_remote() -> None:
     Raises:
         subprocess.CalledProcessError: Se o comando DVC falhar.
     """
+    if not settings.azure_client_id or not settings.azure_tenant_id:
+        print("⚠ Credenciais Azure não configuradas. Usando remote local.")
+        return
+
     account_key = settings.get_azure_storage_key()
 
     subprocess.run(

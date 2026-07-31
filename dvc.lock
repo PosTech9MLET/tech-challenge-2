@@ -133,20 +133,20 @@ stages:
       size: 1363009
     - path: src/models/baseline.py
       hash: md5
-      md5: 38b1a682bd7eadc2f6b36d75a31020d4
-      size: 4724
+      md5: e518a40f445d9cf99c334b24a0260666
+      size: 4872
     - path: src/models/mlp.py
       hash: md5
-      md5: 19567390fc13ecd57b183e2af9a621a4
-      size: 2892
+      md5: 89aa2584cae0e0ad75e1048884bd8d98
+      size: 2981
     - path: src/pipelines/train_stage.py
       hash: md5
-      md5: 04d4743f67b8d1d6d604a8a4af51e044
-      size: 8391
+      md5: 55a23dd5836f427dd913e6246f1dbf69
+      size: 8652
     - path: src/training/trainer.py
       hash: md5
-      md5: 7d9e6033e13113c277a8e113537e6940
-      size: 10186
+      md5: 40c29efeffd8e5f583685aea7a87d0bc
+      size: 10506
     params:
       params.yaml:
         model.dropout: 0.3
@@ -163,16 +163,16 @@ stages:
     outs:
     - path: models/baseline.pkl
       hash: md5
-      md5: b217a51c1743102a9cfc7fea83875721
+      md5: d756cda62f0685383d811b6e90ef1f29
       size: 108599
     - path: models/mlp_best.pt
       hash: md5
-      md5: 9941dc080b04c3b9806e0784b37bdec7
+      md5: fabe16bb739efef72f69c983c9858c4c
       size: 22038229
     - path: models/train_metrics.json
       hash: md5
-      md5: f093138031dc28d1885ee51458907e16
-      size: 233
+      md5: d1218579489169b06d8db2f5f1f26a04
+      size: 244
   evaluate:
     cmd: uv run python -m src.pipelines.evaluate_stage
     deps:
@@ -182,7 +182,7 @@ stages:
       size: 14305046
     - path: models/baseline.pkl
       hash: md5
-      md5: b217a51c1743102a9cfc7fea83875721
+      md5: d756cda62f0685383d811b6e90ef1f29
       size: 108599
     - path: models/encoders.pkl
       hash: md5
@@ -190,24 +190,24 @@ stages:
       size: 1363009
     - path: models/mlp_best.pt
       hash: md5
-      md5: 9941dc080b04c3b9806e0784b37bdec7
+      md5: fabe16bb739efef72f69c983c9858c4c
       size: 22038229
     - path: src/models/baseline.py
       hash: md5
-      md5: 38b1a682bd7eadc2f6b36d75a31020d4
-      size: 4724
+      md5: e518a40f445d9cf99c334b24a0260666
+      size: 4872
     - path: src/models/mlp.py
       hash: md5
-      md5: 19567390fc13ecd57b183e2af9a621a4
-      size: 2892
+      md5: 89aa2584cae0e0ad75e1048884bd8d98
+      size: 2981
     - path: src/pipelines/evaluate_stage.py
       hash: md5
-      md5: 93fed6c830aabb165ca89af28fd18946
-      size: 4937
+      md5: ecbd68157c83bc79dfb4dc305055d055
+      size: 5092
     - path: src/training/trainer.py
       hash: md5
-      md5: 7d9e6033e13113c277a8e113537e6940
-      size: 10186
+      md5: 40c29efeffd8e5f583685aea7a87d0bc
+      size: 10506
     params:
       params.yaml:
         evaluate.k_values:
@@ -217,5 +217,5 @@ stages:
     outs:
     - path: models/eval_metrics.json
       hash: md5
-      md5: eba4035a4560edb2c58a75272e7edd24
-      size: 1070
+      md5: cbcbe517efb26329ff333ee75e9d0b66
+      size: 1107
